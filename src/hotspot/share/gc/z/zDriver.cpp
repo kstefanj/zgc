@@ -30,6 +30,7 @@
 #include "gc/z/zCollectedHeap.hpp"
 #include "gc/z/zDirector.hpp"
 #include "gc/z/zDriver.hpp"
+#include "gc/z/zGCIdPrinter.hpp"
 #include "gc/z/zGeneration.inline.hpp"
 #include "gc/z/zHeap.inline.hpp"
 #include "gc/z/zLock.inline.hpp"
@@ -183,6 +184,7 @@ public:
 
 void ZDriverMinor::gc(const ZDriverRequest& request) {
   ZDriverScopeMinor scope(request, &_gc_timer);
+  ZGCIdMinor minor_id(gc_id());
   ZGeneration::young()->collect(ZYoungType::minor, &_gc_timer);
 }
 
@@ -394,8 +396,10 @@ public:
 
 void ZDriverMajor::gc(const ZDriverRequest& request) {
   ZDriverScopeMajor scope(request, &_gc_timer);
+  ZGCIdMajor major_id(gc_id());
 
   if (should_preclean_young(request.cause())) {
+    major_id.set_tag('Y');
     // Collect young generation and promote everything to old generation
     ZGeneration::young()->collect(ZYoungType::major_full_preclean, &_gc_timer);
 
@@ -404,6 +408,7 @@ void ZDriverMajor::gc(const ZDriverRequest& request) {
     // Collect young generation and gather roots pointing into old generation
     ZGeneration::young()->collect(ZYoungType::major_full_roots, &_gc_timer);
   } else {
+    major_id.set_tag('Y');
     // Collect young generation and gather roots pointing into old generation
     ZGeneration::young()->collect(ZYoungType::major_partial_roots, &_gc_timer);
   }
@@ -416,6 +421,7 @@ void ZDriverMajor::gc(const ZDriverRequest& request) {
   abortpoint();
 
   // Collect old generation
+  major_id.set_tag('O');
   ZGeneration::old()->collect(&_gc_timer);
 }
 
