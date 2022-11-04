@@ -1463,8 +1463,8 @@ void ZStatRelocation::at_relocate_end(size_t small_in_place_count, size_t medium
 void ZStatRelocation::print() {
   LogTarget(Info, gc, reloc) lt;
 
-  if (!lt.is_enabled()) {
-    // Nothing to log
+  if (!_selector_stats.has_relocatable_pages() || !lt.is_enabled()) {
+    // Nothing to log or logging not enabled.
     return;
   }
 

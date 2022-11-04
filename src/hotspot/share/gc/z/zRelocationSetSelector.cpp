@@ -239,5 +239,6 @@ ZRelocationSetSelectorStats ZRelocationSetSelector::stats() const {
     stats._medium[i] = _medium.stats(age);
     stats._large[i] = _large.stats(age);
   }
+  stats._total_pages = total();
   return stats;
 }
