@@ -1443,7 +1443,9 @@ void ZStatMark::print() {
 ZStatRelocation::ZStatRelocation() :
     _selector_stats(),
     _forwarding_usage(),
+    _small_selected(),
     _small_in_place_count(),
+    _medium_selected(),
     _medium_in_place_count() {
 }
 
@@ -1517,22 +1519,34 @@ void ZStatRelocation::print() {
     }
   }
 
-  auto print_summary = [&](const char* name, ZStatRelocationSummary& summary, size_t in_place_count) {
-    lt.print("%s Pages: " SIZE_FORMAT " / " SIZE_FORMAT "M, Empty: " SIZE_FORMAT "M, "
-             "Relocated: " SIZE_FORMAT "M, In-Place: " SIZE_FORMAT,
-             name,
-             summary.npages,
-             summary.total / M,
-             summary.empty / M,
-             summary.relocate / M,
-             in_place_count);
+  ZStatTablePrinter pages(12, 12);
+  lt.print("%s", pages()
+           .fill()
+           .right("Selected")
+           .right("Total")
+           .right("Size")
+           .right("Empty")
+           .right("Relocated")
+           .right("In-Place")
+           .end());
+
+  auto print_summary = [&](const char* name, ZStatRelocationSummary& summary, size_t selected, size_t in_place_count) {
+    lt.print("%s", pages()
+             .left("%s Pages:", name)
+             .right("%zu", selected)
+             .right("%zu", summary.npages)
+             .right("%zuM", summary.total / M)
+             .right("%zuM", summary.empty / M)
+             .right("%zuM", summary.relocate /M)
+             .right("%zu", in_place_count)
+             .end());
   };
 
-  print_summary("Small", small_summary, _small_in_place_count);
+  print_summary("Small", small_summary, _selector_stats.small_selected(), _small_in_place_count);
   if (ZPageSizeMedium != 0) {
-    print_summary("Medium", medium_summary, _medium_in_place_count);
+    print_summary("Medium", medium_summary, _selector_stats.medium_selected(), _medium_in_place_count);
   }
-  print_summary("Large", large_summary, 0 /* in_place_count */);
+  print_summary("Large", large_summary, 0 /* selected */,  0 /* in_place_count */);
 
   lt.print("Forwarding Usage: " SIZE_FORMAT "M", _forwarding_usage / M);
 }

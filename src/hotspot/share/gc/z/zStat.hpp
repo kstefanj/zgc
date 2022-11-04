@@ -522,7 +522,9 @@ class ZStatRelocation {
 private:
   ZRelocationSetSelectorStats _selector_stats;
   size_t                      _forwarding_usage;
+  size_t                      _small_selected;
   size_t                      _small_in_place_count;
+  size_t                      _medium_selected;
   size_t                      _medium_in_place_count;
 
   void print(const char* name,
