@@ -1489,7 +1489,7 @@ void ZStatRelocation::print() {
     account_page_size(large_summary, _selector_stats.large(age));
   }
 
-  ZStatTablePrinter pages(12, 12);
+  ZStatTablePrinter pages(20, 12);
   lt.print("%s", pages()
            .fill()
            .right("Selected")
@@ -1617,7 +1617,7 @@ void ZStatReferences::print() {
     // Nothing to log
     return;
   }
-  ZStatTablePrinter refs(15, 14);
+  ZStatTablePrinter refs(20, 12);
   lt.print("%s", refs()
            .fill()
            .right("Encountered")
@@ -1627,17 +1627,17 @@ void ZStatReferences::print() {
 
   auto ref_print = [&] (const char* name, const ZStatReferences::ZCount& ref) {
     lt.print("%s", refs()
-             .left("%s:", name)
+             .left("%s References:", name)
              .right("%zu", ref.encountered)
              .right("%zu", ref.discovered)
              .right("%zu", ref.enqueued)
              .end());
   };
 
-  ref_print("Soft References", _soft);
-  ref_print("Weak References", _weak);
-  ref_print("Final References", _final);
-  ref_print("Phantom References", _phantom);
+  ref_print("Soft", _soft);
+  ref_print("Weak", _weak);
+  ref_print("Final", _final);
+  ref_print("Phantom", _phantom);
 }
 
 //
