@@ -573,6 +573,12 @@ public:
     ZGeneration::old()->mark_start();
     return true;
   }
+
+  virtual void doit_epilogue() {
+    VM_ZOperation::doit_epilogue();
+    // Log allocation stalls
+    ZStatAllocation::print_at_collection_start();
+  }
 };
 
 class VM_ZMarkStartYoung : public VM_ZOperation {
@@ -592,6 +598,12 @@ public:
     ZCollectedHeap::heap()->increment_total_collections(false /* full */);
     ZGeneration::young()->mark_start();
     return true;
+  }
+
+  virtual void doit_epilogue() {
+    VM_ZOperation::doit_epilogue();
+    // Log allocation stalls
+    ZStatAllocation::print_at_collection_start();
   }
 };
 
@@ -633,6 +645,13 @@ public:
     ZServiceabilityPauseTracer tracer;
     return ZGeneration::young()->mark_end();
   }
+
+  virtual void doit_epilogue() {
+    VM_ZOperation::doit_epilogue();
+    // Log allocation stalls
+    ZStatAllocation::print_at_mark_end(ZGeneration::young());
+  }
+
 };
 
 
@@ -983,6 +1002,12 @@ public:
     ZStatTimerOld timer(ZPhasePauseMarkEndOld);
     ZServiceabilityPauseTracer tracer;
     return ZGeneration::old()->mark_end();
+  }
+
+  virtual void doit_epilogue() {
+    VM_ZOperation::doit_epilogue();
+    // Log allocation stalls
+    ZStatAllocation::print_at_mark_end(ZGeneration::old());
   }
 };
 

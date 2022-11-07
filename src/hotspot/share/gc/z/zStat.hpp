@@ -475,6 +475,16 @@ public:
 };
 
 //
+// Stat allocation stalls
+//
+class ZStatAllocation : public AllStatic {
+public:
+  static void print_at_collection_start();
+  static void print_at_mark_end(ZGeneration* generation);
+  static void print(ZGeneration* generation);
+};
+
+//
 // Stat load
 //
 class ZStatLoad : public AllStatic {
@@ -603,6 +613,7 @@ private:
     size_t free;
     size_t used;
     size_t used_generation;
+    size_t allocation_stall_count;
   } _at_collection_start;
 
   struct ZAtMarkStart {
@@ -621,6 +632,7 @@ private:
     size_t live;
     size_t garbage;
     size_t mutator_allocated;
+    size_t allocation_stall_count;
   } _at_mark_end;
 
   struct ZAtRelocateStart {
@@ -653,6 +665,7 @@ private:
     size_t reclaimed;
     size_t promoted;
     size_t compacted;
+    size_t allocation_stall_count;
   } _at_relocate_end;
 
   NumberSeq _reclaimed_bytes;
@@ -681,6 +694,9 @@ public:
   size_t live_at_mark_end() const;
   size_t used_at_relocate_end() const;
   size_t used_at_collection_end() const;
+  size_t stalls_at_collection_start() const;
+  size_t stalls_at_mark_end() const;
+  size_t stalls_at_collection_end() const;
 
   size_t reclaimed_avg();
 

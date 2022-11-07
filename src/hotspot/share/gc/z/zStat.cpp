@@ -710,7 +710,7 @@ void ZStatPhaseGeneration::register_end(ConcurrentGCTimer* timer, const Ticks& s
 
   ZGeneration* const generation = ZGeneration::generation(_id);
 
-  ZStatLoad::print();
+  ZStatAllocation::print(generation);
   ZStatMMU::print();
   generation->stat_mark()->print();
   ZStatNMethods::print();
@@ -1383,6 +1383,26 @@ ZStatWorkersStats ZStatWorkers::stats() {
 }
 
 //
+// Stat allocation stalls
+//
+void ZStatAllocation::print_at_collection_start() {
+  // Always use young generation stats since they are always present and
+  // for start information the value is equal regardless of generation.
+  log_info(gc, alloc)("Allocation Stalls at collection start: %zu",
+                      ZGeneration::young()->stat_heap()->stalls_at_collection_start());
+}
+
+void ZStatAllocation::print_at_mark_end(ZGeneration* generation) {
+  log_info(gc, alloc)("Allocation Stalls at mark end: %zu",
+                      generation->stat_heap()->stalls_at_mark_end());
+}
+
+void ZStatAllocation::print(ZGeneration* generation) {
+  log_info(gc, alloc)("Allocation Stalls at collection end: %zu",
+                      generation->stat_heap()->stalls_at_collection_end());
+}
+
+//
 // Stat load
 //
 void ZStatLoad::print() {
@@ -1707,6 +1727,7 @@ void ZStatHeap::at_collection_start(const ZPageAllocatorStats& stats) {
   _at_collection_start.free = free(stats.used());
   _at_collection_start.used = stats.used();
   _at_collection_start.used_generation = stats.used_generation();
+  _at_collection_start.allocation_stall_count = stats.allocation_stalls();
 }
 
 void ZStatHeap::at_mark_start(const ZPageAllocatorStats& stats) {
@@ -1727,6 +1748,7 @@ void ZStatHeap::at_mark_end(const ZPageAllocatorStats& stats) {
   _at_mark_end.used = stats.used();
   _at_mark_end.used_generation = stats.used_generation();
   _at_mark_end.mutator_allocated = mutator_allocated(stats.used_generation(), 0 /* reclaimed */, 0 /* relocated */);
+  _at_mark_end.allocation_stall_count = stats.allocation_stalls();
 }
 
 void ZStatHeap::at_select_relocation_set(const ZRelocationSetSelectorStats& stats) {
@@ -1777,6 +1799,7 @@ void ZStatHeap::at_relocate_end(const ZPageAllocatorStats& stats, bool record_st
   _at_relocate_end.reclaimed = reclaimed(stats.freed(), stats.compacted(), stats.promoted());
   _at_relocate_end.promoted = stats.promoted();
   _at_relocate_end.compacted = stats.compacted();
+  _at_relocate_end.allocation_stall_count = stats.allocation_stalls();
 
   if (record_stats) {
     _reclaimed_bytes.add(_at_relocate_end.reclaimed);
@@ -1811,6 +1834,18 @@ size_t ZStatHeap::used_at_collection_end() const {
   return used_at_relocate_end();
 }
 
+size_t ZStatHeap::stalls_at_collection_start() const {
+  return _at_collection_start.allocation_stall_count;
+}
+
+size_t ZStatHeap::stalls_at_mark_end() const {
+  return _at_mark_end.allocation_stall_count;
+}
+
+size_t ZStatHeap::stalls_at_collection_end() const {
+  return _at_relocate_end.allocation_stall_count;
+}
+
 ZStatHeapStats ZStatHeap::stats() {
   ZLocker<ZLock> locker(&_stat_lock);
 
@@ -1822,6 +1857,20 @@ ZStatHeapStats ZStatHeap::stats() {
 }
 
 void ZStatHeap::print(const ZGeneration* generation) const {
+  ZStatTablePrinter stall_table(20, 12);
+  log_info(gc, heap)("%s", stall_table()
+                     .fill()
+                     .right("GC Start")
+                     .right("Mark End")
+                     .right("GC End")
+                     .end());
+  log_info(gc, heap)("%s", stall_table()
+                     .left("%s", "Allocation Stalls:")
+                     .right("%zu", _at_collection_start.allocation_stall_count)
+                     .right("%zu", _at_mark_end.allocation_stall_count)
+                     .right("%zu", _at_relocate_end.allocation_stall_count)
+                     .end());
+
   log_info(gc, heap)("Min Capacity: "
                      ZSIZE_FMT, ZSIZE_ARGS(_at_initialize.min_capacity));
   log_info(gc, heap)("Max Capacity: "
