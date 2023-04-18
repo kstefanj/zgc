@@ -247,6 +247,8 @@ class InstanceKlass: public Klass {
   BreakpointInfo* _breakpoints;          // bpt lists, managed by Method*
   // Linked instanceKlasses of previous versions
   InstanceKlass* _previous_versions;
+  // Linked instanceKlasses of shared previous versions (can't be cleaned)
+  InstanceKlass* _shared_previous_versions;
   // JVMTI fields can be moved to their own structure - see 6315920
   // JVMTI: cached class file, before retransformable agent modified it in CFLH
   JvmtiCachedClassFileData* _cached_class_file;
@@ -697,8 +699,10 @@ public:
   void purge_previous_version_list();
 
   InstanceKlass* previous_versions() const { return _previous_versions; }
+  InstanceKlass* shared_previous_versions() const { return _shared_previous_versions; }
 #else
   InstanceKlass* previous_versions() const { return nullptr; }
+  InstanceKlass* shared_previous_versions() const { return nullptr; }
 #endif
 
   InstanceKlass* get_klass_version(int version) {
@@ -729,6 +733,7 @@ public:
 
   void init_previous_versions() {
     _previous_versions = nullptr;
+    _shared_previous_versions = nullptr;
   }
 
  private:
@@ -1127,6 +1132,7 @@ private:
 #if INCLUDE_JVMTI
   // RedefineClasses support
   void link_previous_versions(InstanceKlass* pv) { _previous_versions = pv; }
+  void link_shared_previous_versions(InstanceKlass* pv) { _previous_versions = pv; }
   void mark_newly_obsolete_methods(Array<Method*>* old_methods, int emcp_method_count);
 #endif
   // log class name to classlist

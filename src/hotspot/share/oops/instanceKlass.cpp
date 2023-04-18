@@ -2478,6 +2478,7 @@ void InstanceKlass::metaspace_pointers_do(MetaspaceClosure* it) {
   it->push(&_inner_classes);
 #if INCLUDE_JVMTI
   it->push(&_previous_versions);
+  it->push(&_shared_previous_versions);
 #endif
 #if INCLUDE_CDS
   // For "old" classes with methods containing the jsr bytecode, the _methods array will
@@ -2579,6 +2580,7 @@ void InstanceKlass::remove_unshareable_info() {
 #if INCLUDE_JVMTI
   _breakpoints = nullptr;
   _previous_versions = nullptr;
+  _shared_previous_versions = nullptr;
   _cached_class_file = nullptr;
   _jvmti_cached_class_field_map = nullptr;
 #endif
@@ -4185,12 +4187,20 @@ void InstanceKlass::add_previous_version(InstanceKlass* scratch_class,
   }
 
   // Add previous version if any methods are still running.
-  // Set has_previous_version flag for processing during class unloading.
-  _has_previous_versions = true;
-  log_trace(redefine, class, iklass, add) ("scratch class added; one of its methods is on_stack.");
   assert(scratch_class->previous_versions() == nullptr, "shouldn't have a previous version");
-  scratch_class->link_previous_versions(previous_versions());
-  link_previous_versions(scratch_class);
+  assert(scratch_class->shared_previous_versions() == nullptr, "shouldn't have a shared previous version");
+  if (cp_ref->is_shared()) {
+    // This is a shared class, add it to the special list that is never cleaned.
+    scratch_class->link_shared_previous_versions(shared_previous_versions());
+    link_shared_previous_versions(scratch_class);
+    log_trace(redefine, class, iklass, add) ("shared scratch class added; should never be cleaned out");
+  } else {
+    // Set has_previous_version flag for processing during class unloading.
+    _has_previous_versions = true;
+    scratch_class->link_previous_versions(previous_versions());
+    link_previous_versions(scratch_class);
+    log_trace(redefine, class, iklass, add) ("scratch class added; one of its methods is on_stack. (%s)", cp_ref->print_value_string());
+  }
 } // end add_previous_version()
 
 #endif // INCLUDE_JVMTI
