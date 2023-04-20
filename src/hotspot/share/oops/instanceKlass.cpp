@@ -4189,13 +4189,19 @@ void InstanceKlass::add_previous_version(InstanceKlass* scratch_class,
     return;
   }
 
-  // Add previous version if any methods are still running.
-  // Set has_previous_version flag for processing during class unloading.
-  _clean_previous_versions = true;
-  log_trace(redefine, class, iklass, add) ("scratch class added; one of its methods is on_stack.");
+  // Add previous version if any methods are still running or if this is
+  // a shared class which should never be removed.
   assert(scratch_class->previous_versions() == nullptr, "shouldn't have a previous version");
   scratch_class->link_previous_versions(previous_versions());
   link_previous_versions(scratch_class);
+  if (cp_ref->is_shared()) {
+    log_trace(redefine, class, iklass, add) ("scratch class added; class is shared");
+  } else {
+    //  We only set clean_previous_versions flag for processing during class
+    // unloading for non-shared classes.
+    _clean_previous_versions = true;
+    log_trace(redefine, class, iklass, add) ("scratch class added; one of its methods is on_stack.");
+  }
 } // end add_previous_version()
 
 #endif // INCLUDE_JVMTI
